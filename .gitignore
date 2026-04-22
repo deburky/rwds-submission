@@ -1,0 +1,28 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+
+# Quarto
+/.quarto/
+*_files/
+*_cache/
+*.html
+!content-brief.html
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Temp folder
+.tmp/
+
+# Environment variables
+.env
+
+# Data (too large for git)
+data/
+*.parquet
+*.csv
