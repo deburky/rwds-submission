@@ -1,21 +1,20 @@
 ---
-title: "The Hidden Statistics Behind Credit Risk: How Turing's Weight of Evidence Became an Information Divergence"
+title: "The Hidden Statistics Behind Credit Risk"
 description: |
-  Three of the most widely used metrics in credit risk---Weight of Evidence, Information Value, and the Population Stability Index---turn out to be classical information divergences with roots in Turing's wartime work and Shannon's information theory. Recovering this foundation gives practitioners new tools: standard errors for IV and PSI, formal hypothesis tests for model drift, and a principled way to navigate the performance--fairness trade-off in regulated lending.
+  Three of the most widely used metrics in credit risk---Weight of Evidence, Information Value, and the Population Stability Index---turn out to be classical information divergences. Recovering this foundation gives practitioners confidence intervals on IV, formal tests for PSI drift, and a principled language for fairness.
 categories:
   - Foundations & Frontiers
   - Statistics
   - Information Theory
   - Credit Risk
-  - Fairness
 author:
+  - name: Denis Burakov
+    affiliations:
+      - Fellow of the Royal Statistical Society
   - name: Agus Sudjianto
     affiliations:
       - H2O.ai
       - Center for Trustworthy AI, University of North Carolina Charlotte
-  - name: Denis Burakov
-    affiliations:
-      - Fellow of the Royal Statistical Society
 date: last-modified
 date-format: long
 toc: true
@@ -47,15 +46,13 @@ Data scientists and statisticians working in credit risk, financial regulation, 
 
 ## Synopsis (250 words max.)
 
-Every credit data scientist learns to compute Weight of Evidence, Information Value, and the Population Stability Index early in their career. Few are taught where these formulas come from. The answer leads to Turing's wartime "weight of evidence" for codebreaking, Shannon's information theory, and a family of divergence measures that the statistics and machine-learning communities have studied for decades under different names.
+Every credit data scientist learns to compute Weight of Evidence, Information Value, and the Population Stability Index early in their career. Few are taught where these formulas come from. The answer leads to Turing's wartime "weight of evidence" for codebreaking, Shannon's information theory, and a family of divergence measures that statisticians have studied for decades.
 
 In a recent paper [@sudjianto2025information], we prove a simple but consequential identity: the industry-standard IV formula is exactly the Jeffreys divergence (symmetric KL divergence) between the distributions of "good" and "bad" borrowers, and PSI is the same divergence computed over time. This means IV and PSI are not ad hoc metrics but specific instances of a well-understood statistical quantity.
 
-Once that connection is made explicit, standard statistical tools become available. The delta method gives closed-form standard errors for both IV and PSI, which means practitioners can, for the first time, construct confidence intervals on variable importance, run formal hypothesis tests for population drift, and replace binary pass/fail fairness thresholds with probabilistic constraints.
+Once that connection is made explicit, standard statistical tools become available. The delta method gives closed-form standard errors for both IV and PSI, which means practitioners can construct confidence intervals on variable importance, run formal hypothesis tests for population drift, and replace binary pass/fail fairness thresholds with probabilistic constraints.
 
-We also formalise the performance--fairness trade-off as a dual IV problem---maximise IV on the target variable, minimise IV on protected attributes---and trace the Pareto frontier via mixed-integer programming.
-
-The article will present these ideas with worked Python examples on the publicly available Home Credit dataset (Kaggle), making the theoretical results immediately reproducible.
+The article presents these ideas with a companion Jupyter notebook on the publicly available Home Credit dataset, making the theoretical results immediately reproducible.
 
 ## Key audience takeaways
 
@@ -65,17 +62,14 @@ The article will present these ideas with worked Python examples on the publicly
 
 3. **Fairness becomes a divergence problem.** The performance--fairness trade-off in credit scoring can be stated as: maximise IV with respect to the target while minimising IV with respect to protected attributes. With IV standard errors, hard fairness thresholds become probabilistic constraints---"P(IV~gender~ < 0.05) $\geq$ 95%"---giving regulators and model validators a principled statistical language for compliance.
 
-4. **Binning matters more than the model.** Empirical results show that logistic regression with one-hot encoding, WoE-transformed logistic regression, and constrained XGBoost all achieve comparable AUCs (0.82--0.84) when built on the same information-theoretic binning. The critical step is the discretisation, not the downstream classifier.
-
-5. **Code-first reproducibility.** All results will be accompanied by Python code on a public dataset, ready for readers to adapt to their own portfolios.
+4. **Code-first reproducibility.** All results are accompanied by a companion Jupyter notebook on a public dataset, ready for readers to adapt to their own portfolios.
 
 ## Formats and features
 
-- **Text**: Narrative article of approximately 2,000--2,500 words, written for the *Foundations & Frontiers* section.
+- **Text**: Narrative article of approximately 2,000 words, written for the *Foundations & Frontiers* section.
 - **Equations**: A small number of key equations (WoE, IV, delta-method standard error) presented in LaTeX, with plain-English interpretations alongside each.
-- **Code blocks**: Python snippets (NumPy/SciPy/pandas) showing how to compute IV standard errors, run hypothesis tests on PSI, and set up the fairness-constrained optimisation. Code will be Quarto-ready and rendered inline.
-- **Static figures**: 2--3 figures, including (i) a bar chart comparing IV point estimates with confidence intervals across features, (ii) a visualisation of the Pareto frontier (performance vs. fairness), and (iii) a diagram linking WoE $\rightarrow$ IV $\rightarrow$ Jeffreys divergence.
-- **Supplementary notebook**: A standalone Jupyter/Quarto notebook reproducing all results on a public credit dataset, to be deposited on Zenodo with a DOI.
+- **Static figures**: 4 figures: (i) IV bar chart with 95% confidence intervals, (ii) PSI drift over time with confidence bands, (iii) performance--fairness scatter plot, and (iv) IV density by demographic group with difference test.
+- **Companion notebook**: A Jupyter notebook reproducing all results on the Home Credit dataset, available on GitHub.
 
 ## Accessibility considerations
 
@@ -86,7 +80,7 @@ The article will present these ideas with worked Python examples on the publicly
 
 ## Target length/word count
 
-2,000--2,500 words (excluding code blocks and references).
+Approximately 2,000 words (excluding references).
 
 ## First draft to be submitted by...
 
@@ -94,11 +88,11 @@ June 2026.
 
 ## Data and provenance statement
 
-All examples will use the publicly available [Home Credit - Credit Risk Model Stability](https://www.kaggle.com/competitions/home-credit-credit-risk-model-stability) dataset from Kaggle (522,596 observations, 32 features covering days past due, credit bureau, and user profile data). No proprietary or personal data will be used. The companion notebook and all code will be released under an open-source licence via Zenodo.
+All examples use the publicly available [Home Credit - Credit Risk Model Stability](https://www.kaggle.com/competitions/home-credit-credit-risk-model-stability) dataset from Kaggle (522,596 observations, 9 features covering credit bureau, financial behaviour, and demographic data). A 10% stratified subsample (~52,000 rows) is used to make confidence intervals visible. No proprietary or personal data is used. The companion notebook and dataset are available on [GitHub](https://github.com/deburky/rwds-submission) and [HuggingFace](https://huggingface.co/datasets/deburky/home-credit-credit-risk-model-stability).
 
 ## About the authors
 
-**Agus Sudjianto** is Chief AI Scientist at H2O.ai and Professor of Practice at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo. His research focuses on interpretable machine learning, model risk management, and responsible AI in financial services.
+**Agus Sudjianto** is SVP of Risk & Technology at H2O.ai and Executive in Residence at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo. His research focuses on interpretable machine learning, model risk management, and responsible AI in financial services.
 
 **Denis Burakov** is a Data Science Team Lead and Fellow of the Royal Statistical Society. He focuses on applied credit risk modelling, information-theoretic methods, and open-source tooling for responsible AI.
 

@@ -9,13 +9,13 @@ categories:
   - Information Theory
   - Credit Risk
 author:
+  - name: Denis Burakov
+    affiliations:
+      - Fellow of the Royal Statistical Society
   - name: Agus Sudjianto
     affiliations:
       - H2O.ai
       - Center for Trustworthy AI, University of North Carolina Charlotte
-  - name: Denis Burakov
-    affiliations:
-      - Fellow of the Royal Statistical Society
 date: last-modified
 date-format: long
 toc: true
@@ -72,7 +72,7 @@ The same formula appears elsewhere in credit risk under the name Population Stab
 **One formula, three applications.** IV, PSI, and fairness IV are all the Jeffreys divergence $J(P \| Q)$ applied to different partitions of the data.
 :::
 
-This is not merely a notational coincidence. It means that every property of the Jeffreys divergence --- non-negativity, symmetry, zero if and only if $P = Q$ --- automatically applies to IV and PSI, grounding decades of ad hoc thresholds (0.02, 0.10, 0.30) in a well-understood statistical quantity [@cover2005elements].
+This is not merely a notational coincidence. It means that every property of the Jeffreys divergence --- non-negativity, symmetry, zero if and only if $P = Q$ --- automatically applies to IV and PSI, grounding decades of ad hoc thresholds (0.02, 0.10, 0.30) in a well-understood statistical quantity [@kullback1951information].
 
 ## Standard errors from the delta method
 
@@ -114,24 +114,24 @@ $$
 \text{CI}_{95\%}(\text{IV}) = \text{IV} \pm 1.96 \cdot \text{SE}(\text{IV})
 $$
 
-@fig-iv-ci shows this applied to 10 features from the Home Credit dataset. The error bars reveal that some features with similar point estimates have very different precision --- a distinction invisible without standard errors.
+@fig-iv-ci shows this applied to 9 features from the Home Credit dataset. The error bars reveal that some features with similar point estimates have very different precision --- a distinction invisible without standard errors.
 
 ::: {#fig-iv-ci}
-![](images/iv_bar_chart.png){fig-alt="Horizontal bar chart showing Information Value for 10 features with human-readable names, with 95% confidence interval error bars. Features are colored by group: blue for Credit Bureau, pink for Financial/Behaviour, and purple for Categorical/Profile. Vertical dashed lines mark the conventional Weak (0.02), Medium (0.1), and Strong (0.3) IV thresholds."}
+![](images/iv_bar_chart.png){fig-alt="Horizontal bar chart showing Information Value for 9 features with human-readable names, with 95% confidence interval error bars. Features are colored by group: blue for Credit Bureau, pink for Financial/Behaviour, and purple for Categorical/Profile. Vertical dashed lines mark the conventional Weak (0.02), Medium (0.1), and Strong (0.3) IV thresholds."}
 
-Information Value with 95% confidence intervals for 10 features from the Home Credit dataset, computed using the delta-method standard error from @eq-se-iv. Colours indicate feature group: Credit Bureau (blue), Financial/Behaviour (pink), Categorical/Profile (purple).
+Information Value with 95% confidence intervals for 9 features from the Home Credit dataset, computed using the delta-method standard error from @eq-se-iv. Colours indicate feature group: Credit Bureau (blue), Financial/Behaviour (pink), Categorical/Profile (purple).
 :::
 
-The standard error also enables a formal hypothesis test for feature relevance. Under $H_0\!: \text{IV} = 0$ (no predictive power), the test statistic $Z = \text{IV} / \text{SE}(\text{IV})$ is asymptotically standard normal. In the Home Credit data, all 10 features reject the null at the 5\% level --- but this will not always be the case, particularly for smaller portfolios or finer binning schemes where sampling noise dominates.
+The standard error also enables a formal hypothesis test for feature relevance. Under $H_0\!: \text{IV} = 0$ (no predictive power), the test statistic $Z = \text{IV} / \text{SE}(\text{IV})$ is asymptotically standard normal. In the Home Credit data, all 9 features reject the null at the 5\% level --- but this will not always be the case, particularly for smaller portfolios or finer binning schemes where sampling noise dominates.
 
 ### 2. Testing whether PSI drift is real
 
-The same SE formula applies to PSI. @fig-psi shows PSI computed weekly for the top-IV feature against a four-week reference period. With confidence intervals, weeks where PSI barely crosses the conventional 0.10 threshold can be assessed probabilistically --- "Is this drift statistically significant, or could it be sampling noise?" --- rather than triggering automatic remediation.
+The same SE formula applies to PSI. @fig-psi shows PSI computed weekly for the number of credit inquiries against a ten-week reference period. Two phenomena are visible. Around April 2020, a sharp spike crosses the minor-shift threshold --- but the wide confidence band signals that this is driven by a collapse in loan origination volumes during COVID lockdowns (as few as 82 applications in one week), not a genuine distributional shift. More telling is the sustained elevation from May onward, where PSI hovers in the 0.03--0.07 range with the confidence band consistently above zero, suggesting a real change in inquiry behaviour post-lockdown. Without CIs, both patterns look like drift; with them, the practitioner can distinguish noise from signal.
 
 ::: {#fig-psi}
-![](images/psi_over_time.png){fig-alt="Line chart showing PSI values over approximately 38 weeks for the top feature. Points are colored pink if the drift is statistically significant (Z > 1.96) and cyan if not. A shaded band shows the 95% confidence interval. Horizontal dashed lines mark minor shift (0.1) and major shift (0.25) thresholds."}
+![](images/psi_over_time.png){fig-alt="Line chart showing weekly PSI values for number of credit inquiries. A spike around April 2020 has a wide confidence band indicating low sample size. From May onward, PSI is persistently elevated with the confidence band above zero, indicating genuine drift. Coloured threshold zones mark stable (green), minor shift (orange), and major shift (red) regions."}
 
-PSI over time for the highest-IV feature, with 95% confidence bands from the delta method. Points are coloured by statistical significance: pink if $Z > 1.96$ (drift is real), cyan if the shift is indistinguishable from sampling noise.
+PSI over time for number of credit inquiries, with 95% confidence bands from the delta method. The April 2020 spike reflects low origination volumes, not real drift; the sustained post-lockdown elevation is genuine.
 :::
 
 ### 3. Defending fairness constraints
@@ -156,7 +156,7 @@ The most prominent outlier is `income_type`, with a demographic IV of 0.35. Insp
 ::: {#fig-pareto}
 ![](images/pareto_predictive_vs_demographic.png){fig-alt="Scatter plot with Predictive IV on the x-axis and Demographic IV on the y-axis. Each point is a feature, colored by group. Error bars show 95% confidence intervals on both axes. A horizontal dashed orange line marks the fairness threshold at IV = 0.05."}
 
-Performance--fairness trade-off for 10 features. Horizontal axis: IV against the default target (predictive power). Vertical axis: IV against applicant sex (demographic bias). Features above the dashed line ($\text{IV}_{\text{fair}} > 0.05$) fail the fairness constraint at the 95% confidence level.
+Performance--fairness trade-off for 9 features. Horizontal axis: IV against the default target (predictive power). Vertical axis: IV against applicant sex (demographic bias). Features above the dashed line ($\text{IV}_{\text{fair}} > 0.05$) fail the fairness constraint at the 95% confidence level.
 :::
 
 A more nuanced test goes further: compute IV *separately* for each demographic group on shared bins, then test whether the difference is significant. @fig-density shows this for the top feature, percent of late installments. The left panel plots the IV sampling distribution for female and male applicants; the right panel shows the distribution of the difference. The feature is more predictive for women (IV = 0.31) than for men (IV = 0.21), and the gap is statistically significant ($\Delta\text{IV} = -0.091$, $p = 0.002$). This kind of differential predictive power --- invisible without standard errors --- has direct implications for equal treatment.
@@ -171,7 +171,7 @@ The full optimisation of this trade-off --- tracing the Pareto frontier via mixe
 
 ## Code and data
 
-All results in this article are reproduced in a companion Jupyter notebook, available at [github.com/deburky/rwds-submission](https://github.com/deburky/rwds-submission). The notebook uses the [Home Credit --- Credit Risk Model Stability](https://huggingface.co/datasets/deburky/home-credit-credit-risk-model-stability) dataset (522,596 loan applications, 10 features) and can be run directly from HuggingFace without downloading the raw Kaggle data. WoE encoding, IV computation, and standard errors are computed using the open-source [FastWoe](https://github.com/xRiskLab/fastwoe) library.
+All results in this article are reproduced in a companion Jupyter notebook, available at [github.com/deburky/rwds-submission](https://github.com/deburky/rwds-submission). The notebook uses the [Home Credit --- Credit Risk Model Stability](https://huggingface.co/datasets/deburky/home-credit-credit-risk-model-stability) dataset (522,596 loan applications, 9 features) and can be run directly from HuggingFace without downloading the raw Kaggle data. WoE encoding, IV computation, and standard errors are computed using the open-source [FastWoe](https://github.com/xRiskLab/fastwoe) library.
 
 ## Conclusion
 
@@ -189,13 +189,13 @@ These are small changes in workflow, but they move credit risk practice from poi
 ::: grid
 ::: {.g-col-12 .g-col-md-12}
 About the authors
-: **Agus Sudjianto** is Chief AI Scientist at H2O.ai and Professor of Practice at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo.
+: **Agus Sudjianto** is SVP of Risk & Technology at H2O.ai and Executive in Residence at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo.
 
-: **Denis Burakov** is a Data Science Team Lead and Fellow of the Royal Statistical Society. He focuses on applied credit risk modelling, information-theoretic methods, and open-source tooling for responsible AI.
+: **Denis Burakov** is a Data Science Team Lead at Renmoney and Fellow of the Royal Statistical Society. He focuses on applied credit risk modelling, information-theoretic methods, and open-source tooling for responsible AI.
 :::
 ::: {.g-col-12 .g-col-md-6}
 Copyright and licence
-: &copy; 2026 Agus Sudjianto and Denis Burakov
+: &copy; 2026 Denis Burakov and Agus Sudjianto
 
 <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;"> <img style="height:22px!important;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"></a> This article is licensed under a Creative Commons Attribution 4.0 (CC BY 4.0) <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;"> International licence</a>.
 
@@ -203,7 +203,7 @@ Copyright and licence
 
 ::: {.g-col-12 .g-col-md-6}
 How to cite
-: Sudjianto, Agus, and Denis Burakov. 2026. "The Hidden Statistics Behind Credit Risk." Real World Data Science, June, 2026. [URL](https://realworlddatascience.net)
+: Burakov, Denis, and Agus Sudjianto. 2026. "The Hidden Statistics Behind Credit Risk." Real World Data Science, June, 2026. [URL](https://realworlddatascience.net)
 :::
 :::
 :::
