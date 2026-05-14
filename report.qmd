@@ -1,12 +1,21 @@
 ---
-title: How to create an article for Real World Data Science
+title: "The Hidden Statistics Behind Credit Risk"
+subtitle: "How Weight of Evidence, Information Value, and the Population Stability Index became information divergences --- and why that matters"
 description: |
-  A template to help contributors style their articles and make use of different Quarto features.
+  Three of the most widely used metrics in credit risk turn out to be classical information divergences. Recovering this foundation gives practitioners confidence intervals on IV, formal tests for PSI drift, and a principled language for fairness.
 categories:
-  - Resources
-  - for
-  - Contributors
-author: Author1, Author2
+  - Foundations & Frontiers
+  - Statistics
+  - Information Theory
+  - Credit Risk
+author:
+  - name: Agus Sudjianto
+    affiliations:
+      - H2O.ai
+      - Center for Trustworthy AI, University of North Carolina Charlotte
+  - name: Denis Burakov
+    affiliations:
+      - Fellow of the Royal Statistical Society
 date: last-modified
 date-format: long
 toc: true
@@ -19,297 +28,186 @@ format:
       sidebar-width: 0px
       body-width: 1000px
       margin-width: 250px
-    code-annotations: below
-    mermaid: 
-      theme: neutral
 bibliography: references.bib
 csl: chicago.csl
 execute:
   eval: false
-  echo: true
+  echo: false
   messages: false
   error: false
   warning: false
-nocite: '@*'
 page-layout: article
 title-block-banner: true
-# citation: true
----
-This is a template for writing Real World Data Science (RWDS) articles in [`Quarto`](https://quarto.org). Please insert graphs and tables as static objects, i.e. `.png` files or markdown tables, rather than generating them by code, as it otherwise takes too long to render the full RWDS website.
-
-One idea for a workflow could be to write your analysis and text directly in the `report.qmd` file, execute your code cells in your local terminal, save figures into the images folder, and import them as files in the `report.qmd`.
-
-<!-- TODO: What about creating the files once and freezing them? Is there a more elegant way? -->
-
-For the content of your writing, make sure to check out the resources on [RWDS---Call for Contributions](https://realworlddatascience.net/contributor-docs/call-for-contributions.html).
-
-## A main section about writing text
-
-Notice how the headings and their hierarchy also show up in the table of contents on the right-hand side.
-
-When writing, use **bold**, *italics*, and ~~strikethrough~~ text for emphasis, but use sparingly.
-
-<!-- You can also write comments for yourself, which won't show up in the rendered documents. However, be aware that these comments will be displayed in the online source code in the RWDS repository, so don't share any secrets here! -->
-
-In this subsection, we will show how to create lists and blockquotes:
-
-1. First item
-2. Second item
-
-- Item A
-- Item B
-  - Subitem B1
-
-> You can make profound statements in a blockquote.
-
-You can add a footnote to your writing.^[In case you want to give an extra reference or link to a source.]
-
-By adding your references as BibTeX to the `references.bib` file in this repository, you not only maintain your references in the right citation style, but you can also cite directly, as recommended by @example-bibtexkey, or indirectly [see @example-bibtexkey].
-
-By writing `---` you can add a horizontal line separator.
-
 ---
 
-If your article includes tips on special keyboard shortcuts, you can typeset them like this: *To print, press* {{< kbd Shift-Ctrl-P >}}. *To open an existing new project, press* {{< kbd mac=Shift-Command-O win=Shift-Control-O linux=Shift-Ctrl-L >}}.
+Every credit data scientist learns to compute Weight of Evidence (WoE), Information Value (IV), and the Population Stability Index (PSI) early in their career. Few are taught where the formulas come from. The answer leads back to Turing's wartime *weight of evidence* for codebreaking [@good1950probability], Shannon's information theory [@shannon1948mathematical], and a family of divergence measures that statisticians have studied for decades [@kullback1951information; @jeffreys1961theory].
 
-You can write equations in-line like this $y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \epsilon \text{, }$ or in a separate block like this:
+In a recent paper [@sudjianto2025information], we prove a simple but consequential identity: the industry-standard IV formula is mathematically identical to the Jeffreys divergence between good and bad borrower distributions. PSI is the same divergence computed over time. And a "fairness IV" is the same divergence computed across demographic groups. Once that connection is made explicit, standard statistical tools become available --- and three things change in day-to-day practice:
+
+1. You can **report a confidence interval on IV** when ranking features, not just a point estimate.
+2. You can **formally test whether a PSI shift is real drift** or sampling noise.
+3. You can **defend fairness constraints** under model risk review with probabilistic bounds.
+
+This article walks through the identity, derives the standard errors, and shows how each of these works on the publicly available Home Credit dataset [@homecredit2024].
+
+## The identity: IV = PSI = Jeffreys divergence
+
+Start with the textbook IV formula. For a feature binned into $J$ categories, let $p_{g,j}$ and $p_{b,j}$ be the proportions of good and bad borrowers in bin $j$. Information Value is defined as [@siddiqi2017intelligent]:
+
 $$
-y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \epsilon \text{. }
-$$ {#eq-first}
+\text{IV} = \sum_{j=1}^{J}(p_{b,j} - p_{g,j})\,\ln\frac{p_{b,j}}{p_{g,j}}
+$$ {#eq-iv}
 
-@eq-first is an example of a reference to an equation.
+Now consider the Jeffreys divergence, defined as the symmetrised Kullback--Leibler divergence [@kullback1951information; @jeffreys1961theory]:
 
-::: {.callout-note appearance="simple"}
-For more information on **cross-references**, see the [Quarto documentation](https://quarto.org/docs/authoring/cross-references.html#equations).
-:::
+$$
+J(P \| Q) = D_{\text{KL}}(P \| Q) + D_{\text{KL}}(Q \| P) = \sum_j (p_j - q_j)\,\ln\frac{p_j}{q_j}
+$$ {#eq-jeffreys}
 
-### Sub-section: Creating tables
+Set $P = P_b$ and $Q = P_g$, and @eq-iv is exactly @eq-jeffreys. That is all the proof requires --- the industry IV formula *is* the Jeffreys divergence, written in a different notation.
 
-Adding a table in markdown is easy, but can result in some formatting work. Consider using a tool like [tablesgenerator](https://www.tablesgenerator.com/markdown_tables), or the [Visual Editor if you are using R Studio](https://quarto.org/docs/visual-editor/).
-
-| Column 1 | Column 2 | Column 3 |
-| -------- | -------- | -------- |
-| A        | B        | C        |
-| D        | E        | F        |
-: Example table with a caption. {#tbl-example}
-
-You can also reference great tables such as @tbl-example.
-
-If needed, you can also add sub-tables:
-
-::: {#tbl-panel layout-ncol=2}
-| Col1 | Col2 | Col3 |
-|------|------|------|
-| A    | B    | C    |
-| E    | F    | G    |
-| A    | G    | G    |
-
-: First Table. {#tbl-first}
-
-| Col1 | Col2 | Col3 |
-|------|------|------|
-| A    | B    | C    |
-| E    | F    | G    |
-| A    | G    | G    |
-
-: Second Table. {#tbl-second}
-
-Main Caption.
-:::
-
-See @tbl-panel for details, especially @tbl-second.
-
-::: {.callout-note appearance="simple"}
-For more information on **tables**, see the [Quarto documentation](https://quarto.org/docs/authoring/tables.html#grid-tables).
-:::
-
-## Another main section: Writing code
-
-Authoring technical articles may also include code chunks. You can add code chunks in `R` like this:
-
-``` {r}
-set_signif_par()
-plot(1:4, 1:4, col=1:4, pch=19, cex=3, xlab="", ylab="",
-     main = "My Significance Plot",
-     sub = "Source: data source")
-abline(h=1:4, v=1:4, col = "lightgrey")
-```
-
-We can write not only about `R`, but also about `Python`:
-
-``` {python}
-import pandas as pd
-print("Hello this is Python code")
-```
-
-or `Julia` (and many other languages):^[To render documents with embedded `Julia` code, follow the [installation instructions](https://quarto.org/docs/computations/julia.html#installation) on the Quarto website.]
-
-``` {{julia}}
-using Plots
-plot(sin, 
-     x->sin(2x), 
-     0, 
-     2π, 
-     leg=false, 
-     fill=(0,:lavender))
-```
-
-If you want to show how to write a specific code chunk in `Quarto`, you can use the `echo: fenced` option to show the code in the output. 
-
-```{r}
-#| echo: fenced
-# This is a fenced code block with some R code
-x <- 1:10
-y <- x^2
-plot(x, y)
-```
-
-If you want to reference specific lines of code, set `code-line-numbers: true`. Even better, take a look at how to do [interactive code annotations](https://quarto.org/docs/authoring/code-annotation.html#annotation-syntax), as these are also supported on Real World Data Science. You can see an example here (try clicking on the numbers for the highlighting):
-
-```{r}
-#| code-line-numbers: true
-library(tidyverse)
-library(palmerpenguins)
-penguins |>                                      # <1>
-  mutate(                                        # <2>
-    bill_ratio = bill_depth_mm / bill_length_mm, # <2>
-    bill_area  = bill_depth_mm * bill_length_mm  # <2>
-  )                                              # <2>
-```
-1. Take `penguins`, and then,
-2. add new columns for the bill ratio and bill area.
-
-
-## Figures and their layout
-
-You can also add images:
-
-![](https://realworlddatascience.net/images/rwds-logo-150px.png)
-
-and resize them:
-
-![](https://realworlddatascience.net/images/rwds-logo-150px.png){width=10%}
-
-and reposition them:
-
-![](https://realworlddatascience.net/images/rwds-logo-150px.png){width=10% fig-align="center"}
-
-You can make use of Quarto's options to arrange multiple images in a grid, and link to both URLs and local files. Also, you can add captions to images that contain links. Local images should be stored in the folder `images` and in `.png` format.
-
-You can also cross-reference figures, such as @fig-layout, or subfigures like @fig-repo.
-
-::: {#fig-layout layout="[1,1,1]"}
-
-![[Data](https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2006&q=80)](https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2006&q=80){#fig-data}
-
-![[Laptop](https://images.unsplash.com/photo-1538688273852-e29027c0c176?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80)](https://images.unsplash.com/photo-1538688273852-e29027c0c176?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80){#fig-laptop}
-
-![[Cover of The Repo Newsletter](https://dsecon.substack.com)](images/repo_cover.png){#fig-repo}
-
-Caption for the full figure.
-
-:::
-
-Sometimes, you might want to add an image, graph, equation, table, or simple text in the margin of the page, to further substantiate a claim that you make. Here we put the RWDS logo in the margin.
+The same formula appears elsewhere in credit risk under the name Population Stability Index, where $P$ is a reference distribution and $Q$ is a comparison distribution measured at a later point in time. And if $P$ and $Q$ are the feature distributions of two demographic groups, the same formula quantifies demographic bias.
 
 ::: {.column-margin}
-![RWDS logo in the margin.](https://realworlddatascience.net/images/rwds-logo-150px.png)
+**One formula, three applications.** IV, PSI, and fairness IV are all the Jeffreys divergence $J(P \| Q)$ applied to different partitions of the data.
 :::
 
-::: {.callout-note appearance="simple"}
-For more information on figures, see the [Quarto documentation](https://quarto.org/docs/authoring/figures.html).
+This is not merely a notational coincidence. It means that every property of the Jeffreys divergence --- non-negativity, symmetry, zero if and only if $P = Q$ --- automatically applies to IV and PSI, grounding decades of ad hoc thresholds (0.02, 0.10, 0.30) in a well-understood statistical quantity [@cover2005elements].
+
+## Standard errors from the delta method
+
+The practical payoff of the identity is that it opens the door to statistical inference. Because IV is a function of sample proportions, it has a sampling distribution, and we can derive its standard error.
+
+### WoE and location invariance
+
+The key observation is that Weight of Evidence is a *centred* log-odds ratio:
+
+$$
+\text{WoE}_j = \underbrace{\ln\frac{n_{j,b}}{n_{j,g}}}_{\text{bin log-odds}} - \underbrace{\ln\frac{n_b}{n_g}}_{\text{population log-odds}}
+$$ {#eq-woe}
+
+Subtracting a constant does not change the variance --- a property familiar from Welford's algorithm for numerically stable variance computation. Since $\text{Var}(X - K) = \text{Var}(X)$ for any constant $K$, the standard error of WoE is identical to the standard error of the bin-level log-odds ratio:
+
+$$
+\text{SE}(\text{WoE}_j) = \sqrt{\frac{1}{n_{j,g}} + \frac{1}{n_{j,b}}}
+$$ {#eq-se-woe}
+
+This can also be written as $1/\sqrt{n_j \cdot p_j(1-p_j)}$, where $n_j$ is the bin size and $p_j$ is the bin event rate --- the same expression that appears as the standard error of a logistic regression coefficient. Hand and Henley [-@hand1997statistical] describe both WoE encoding and logistic regression as standard tools in credit scoring; the connection between their standard errors is made explicit in our paper [@sudjianto2025information].
+
+### From WoE standard errors to IV standard errors
+
+Since IV is a weighted sum of WoE values, the delta method propagates the uncertainty. Assuming approximate independence across bins:
+
+$$
+\text{SE}(\text{IV}) = \sqrt{\sum_{j=1}^{J}(p_{b,j} - p_{g,j})^2 \cdot \text{SE}(\text{WoE}_j)^2}
+$$ {#eq-se-iv}
+
+Because we established that IV = PSI = Jeffreys divergence, the same formula applies to PSI whenever it is computed from binned counts.
+
+## What changes in practice
+
+### 1. Confidence intervals on IV
+
+With @eq-se-iv, every IV point estimate gains an uncertainty bound:
+
+$$
+\text{CI}_{95\%}(\text{IV}) = \text{IV} \pm 1.96 \cdot \text{SE}(\text{IV})
+$$
+
+@fig-iv-ci shows this applied to 10 features from the Home Credit dataset. The error bars reveal that some features with similar point estimates have very different precision --- a distinction invisible without standard errors.
+
+::: {#fig-iv-ci}
+![](images/iv_bar_chart.png){fig-alt="Horizontal bar chart showing Information Value for 10 features with human-readable names, with 95% confidence interval error bars. Features are colored by group: blue for Credit Bureau, pink for Financial/Behaviour, and purple for Categorical/Profile. Vertical dashed lines mark the conventional Weak (0.02), Medium (0.1), and Strong (0.3) IV thresholds."}
+
+Information Value with 95% confidence intervals for 10 features from the Home Credit dataset, computed using the delta-method standard error from @eq-se-iv. Colours indicate feature group: Credit Bureau (blue), Financial/Behaviour (pink), Categorical/Profile (purple).
 :::
 
-## Creating diagrams
+The standard error also enables a formal hypothesis test for feature relevance. Under $H_0\!: \text{IV} = 0$ (no predictive power), the test statistic $Z = \text{IV} / \text{SE}(\text{IV})$ is asymptotically standard normal. In the Home Credit data, all 10 features reject the null at the 5\% level --- but this will not always be the case, particularly for smaller portfolios or finer binning schemes where sampling noise dominates.
 
-Rather than creating diagrams in Canva, Figma, or PowerPoint and pasting them into your article as an image, consider using [Mermaid](https://mermaid-js.github.io/mermaid/#/). Note how the chunk options for Mermaid start with `%%|` and that you need to set the option `eval: true` and `echo: false` to only generate your graph and not the code that created it. @fig-mermaid is an example of a reference to a diagram.
+### 2. Testing whether PSI drift is real
 
-```{mermaid}
-%%| eval: true
-%%| echo: false
-%%| fig-align: center
-%%| fig-cap: "This is a caption for the diagram."
-%%| label: fig-mermaid
-flowchart LR
-  A[Hard edge] --> B(Round edge)
-  B --> C{Decision}
-  C --> D[Result one]
-  C --> E[Result two]
-```
+The same SE formula applies to PSI. @fig-psi shows PSI computed weekly for the top-IV feature against a four-week reference period. With confidence intervals, weeks where PSI barely crosses the conventional 0.10 threshold can be assessed probabilistically --- "Is this drift statistically significant, or could it be sampling noise?" --- rather than triggering automatic remediation.
 
-::: {.callout-note appearance="simple"}
-For more information on diagrams, see the [Quarto documentation](https://quarto.org/docs/authoring/diagrams.html).
+::: {#fig-psi}
+![](images/psi_over_time.png){fig-alt="Line chart showing PSI values over approximately 38 weeks for the top feature. Points are colored pink if the drift is statistically significant (Z > 1.96) and cyan if not. A shaded band shows the 95% confidence interval. Horizontal dashed lines mark minor shift (0.1) and major shift (0.25) thresholds."}
+
+PSI over time for the highest-IV feature, with 95% confidence bands from the delta method. Points are coloured by statistical significance: pink if $Z > 1.96$ (drift is real), cyan if the shift is indistinguishable from sampling noise.
 :::
 
-## Interactive elements
+### 3. Defending fairness constraints
 
-### Shiny
+Because the same divergence formula measures both predictive power and demographic bias, the performance--fairness trade-off can be stated precisely:
 
-We welcome the inclusion of interactive elements such as Shiny apps in RWDS articles. So far, the easiest way to implement these apps is to host them on your own and embed them in this article as an HTML iframe object.
+- **Maximise** $\text{IV}_{\text{perf}}$ --- Jeffreys divergence between good and bad borrowers (predictive power)
+- **Minimise** $\text{IV}_{\text{fair}}$ --- Jeffreys divergence between demographic groups (fairness)
 
-One example workflow could be:
+With standard errors, a hard regulatory threshold such as $\text{IV}_{\text{fair}} \leq 0.05$ becomes a probabilistic constraint:
 
-1. Create a Shiny app and host it on your server, e.g. on [shinyapps.io](https://www.shinyapps.io/) (free option).
-2. You can then embed the app in your article as an [HTML iframe](https://support.posit.co/hc/en-us/articles/217592607-Can-I-embed-iframe-Shiny-apps-in-other-websites-from-RStudio-Connect-).
+$$
+P(\text{IV}_{\text{fair}} \leq \epsilon) \geq 95\%
+$$ {#eq-fairness}
 
-The iframe could look like this (replace `www.your_shiny_dashboard` with the URL of your app):
+This transforms binary pass/fail compliance into a risk-based assessment. A feature with $\text{IV}_{\text{fair}} = 0.048 \pm 0.001$ is qualitatively different from one with $\text{IV}_{\text{fair}} = 0.048 \pm 0.020$, even though both have the same point estimate.
 
-```{html}
- <iframe src="www.your_shiny_dashboard" style="border: none; width: 100%; height: 500px" frameborder="0"></iframe>
-```
+@fig-pareto shows predictive IV plotted against demographic IV (computed against applicant sex) for each feature. The horizontal threshold line at 0.05 separates features that pass the fairness constraint from those that fail --- but the error bars show that for some features near the boundary, the classification depends on the confidence level chosen.
 
-Paste this code directly into your `.qmd` file to implement the HTML iframe.
+The most prominent outlier is `income_type`, with a demographic IV of 0.35. Inspecting the category proportions reveals why: retired pensioners make up 18.5% of female applicants but only 5.7% of males, and salaried government employees account for 19.5% of women versus 7.0% of men. The feature is not encoding a prejudice --- it is reflecting a real demographic difference in employment composition. But a scorecard that includes it will implicitly treat women and men differently, which is precisely what the high IV flags. Whether that is acceptable is a regulatory decision; the statistics quantify the size of the gap.
 
-You can find an example in the RWDS article, [Using 'basket complementarity' to make product recommendations](https://realworlddatascience.net/ideas/datasciencebites/posts/2023/03/02/basket-complementarity.html).
+::: {#fig-pareto}
+![](images/pareto_predictive_vs_demographic.png){fig-alt="Scatter plot with Predictive IV on the x-axis and Demographic IV on the y-axis. Each point is a feature, colored by group. Error bars show 95% confidence intervals on both axes. A horizontal dashed orange line marks the fairness threshold at IV = 0.05."}
 
-### webR
-The webR Quarto extension, from [James Balamuta](https://thecoatlessprofessor.com/about/), is very exciting. As Balamuta describes, webR is "designed to empower you to run R code directly in your web browser using familiar reporting tools, all without the need for an external R server."
-
-Visit the [quarto-webr website](https://quarto-webr.thecoatlessprofessor.com/) for details on how to make full use of this capability. And check out [a simple working example](https://realworlddatascience.net/viewpoints/editors-blog/posts/2023/09/19/positconf-blog.html#dynamic-interactions-empowering-educators-and-researchers-with-interactive-quarto-documents-using-webr) on RWDS.
-
-## Some icing on the cake
-
-You can add a warning to your writing like this:
-
-::: {.callout-warning appearance="simple"}
-This is a warning!
+Performance--fairness trade-off for 10 features. Horizontal axis: IV against the default target (predictive power). Vertical axis: IV against applicant sex (demographic bias). Features above the dashed line ($\text{IV}_{\text{fair}} > 0.05$) fail the fairness constraint at the 95% confidence level.
 :::
 
-If your remark is too benign for a warning, but still valuable information for the reader, consider a note:
+A more nuanced test goes further: compute IV *separately* for each demographic group on shared bins, then test whether the difference is significant. @fig-density shows this for the top feature, percent of late installments. The left panel plots the IV sampling distribution for female and male applicants; the right panel shows the distribution of the difference. The feature is more predictive for women (IV = 0.31) than for men (IV = 0.21), and the gap is statistically significant ($\Delta\text{IV} = -0.091$, $p = 0.002$). This kind of differential predictive power --- invisible without standard errors --- has direct implications for equal treatment.
 
-::: {.callout-note appearance="simple"}
-Want to hear more from the RSS Data Science and AI Section? Sign up for its newsletter at [rssdsaisection.substack.com](https://rssdsaisection.substack.com/).
+::: {#fig-density}
+![](images/iv_density_by_group.png){fig-alt="Two-panel figure. Left panel shows two normal density curves for the IV of percent late installments, one for female applicants (pink, IV around 0.31) and one for male applicants (cyan, IV around 0.21), with vertical dashed lines at the Weak, Medium, and Strong IV thresholds. Right panel shows the normal density of the IV difference (Male minus Female), centred at minus 0.09, with 95% confidence interval dotted lines and a vertical black line at zero."}
+
+IV density by sex for percent of late installments. Left: IV sampling distributions for female and male groups (delta-method normal approximation). Right: distribution of the difference $\Delta\text{IV}$; zero falls outside the 95% CI, confirming the gap is statistically significant.
 :::
 
-To add more media to your article, consider embedding a video:
+The full optimisation of this trade-off --- tracing the Pareto frontier via mixed-integer programming, selecting features that jointly maximise performance subject to fairness budgets --- is developed in the paper [@sudjianto2025information]. The key contribution here is the *statistical* one: standard errors make the trade-off quantitative rather than binary.
 
-{{< video https://www.youtube.com/embed/wo9vZccmqwc >}}
+## Code and data
 
-<!-- TODO: This leads to weird formatting of the rest of the article. Also: How does this work when hosted? -->
+All results in this article are reproduced in a companion Jupyter notebook, available at [github.com/deburky/rwds-submission](https://github.com/deburky/rwds-submission). The notebook uses the [Home Credit --- Credit Risk Model Stability](https://huggingface.co/datasets/deburky/home-credit-credit-risk-model-stability) dataset (522,596 loan applications, 10 features) and can be run directly from HuggingFace without downloading the raw Kaggle data. WoE encoding, IV computation, and standard errors are computed using the open-source [FastWoe](https://github.com/xRiskLab/fastwoe) library.
 
-<!-- https://quarto.org/docs/interactive/shiny/ -->
+## Conclusion
+
+Weight of Evidence, Information Value, and the Population Stability Index are not ad hoc metrics. They are specific instances of the Jeffreys divergence --- a quantity with well-understood statistical properties dating back to the 1940s. Recognising this identity is not merely an intellectual exercise: it gives the delta method a purchase, and the delta method gives standard errors, confidence intervals, and hypothesis tests.
+
+The practical upshot for credit data scientists is concise. When you rank features by IV, report the confidence interval --- a feature with IV = 0.15 $\pm$ 0.04 may not be meaningfully different from one with IV = 0.12 $\pm$ 0.03. When PSI crosses a threshold, test whether the shift is statistically significant before triggering remediation. And when defending a model under fairness review, present the probability that your fairness IV falls within the regulatory budget, not just the point estimate.
+
+These are small changes in workflow, but they move credit risk practice from point estimates to inference --- which is, after all, what statistics is for.
 
 ::: {.article-btn}
-[Back to section homepage](url)
+[Back to Foundations & Frontiers](https://realworlddatascience.net/ideas/foundations-and-frontiers/)
 :::
 
 ::: {.further-info}
 ::: grid
 ::: {.g-col-12 .g-col-md-12}
-About the author
-: Author 1 is... and Author 2 is...
+About the authors
+: **Agus Sudjianto** is Chief AI Scientist at H2O.ai and Professor of Practice at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo.
+
+: **Denis Burakov** is a Data Science Team Lead and Fellow of the Royal Statistical Society. He focuses on applied credit risk modelling, information-theoretic methods, and open-source tooling for responsible AI.
 :::
 ::: {.g-col-12 .g-col-md-6}
 Copyright and licence
-: &copy; 2023 Author 1 and Author 2
+: &copy; 2026 Agus Sudjianto and Denis Burakov
 
-<a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;"> <img style="height:22px!important;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"></a> This article is licensed under a Creative Commons Attribution 4.0 (CC BY 4.0) <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;"> International licence</a>. Thumbnail photo credit and licence goes here.
-  
+<a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;"> <img style="height:22px!important;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"></a> This article is licensed under a Creative Commons Attribution 4.0 (CC BY 4.0) <a href="http://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;"> International licence</a>.
+
 :::
 
 ::: {.g-col-12 .g-col-md-6}
 How to cite
-: 1, Author, and Author 2. 2023. "How to create an article for Real World Data Science." Real World Data Science, Month Day, Year. [URL](url)
+: Sudjianto, Agus, and Denis Burakov. 2026. "The Hidden Statistics Behind Credit Risk." Real World Data Science, June, 2026. [URL](https://realworlddatascience.net)
 :::
 :::
+:::
+
+::: {.callout-note appearance="simple"}
+**AI disclosure.** Claude (Anthropic) was used to assist with code development for the companion notebook and to help structure drafts of this article. All mathematical content, analysis, and editorial decisions are the authors' own.
 :::
