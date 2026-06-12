@@ -1,13 +1,13 @@
-# jsonflat project conventions
+# RWDS project conventions
 
 ## Comment style for section dividers
 
 Use the 80-character dashed style — not Unicode box-drawing characters:
 
 ```python
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Section name
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 ```
 
 No blank line between the closing `#---` line and the next code block.

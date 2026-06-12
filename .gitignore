@@ -9,6 +9,7 @@ __pycache__/
 *_cache/
 *.html
 !content-brief.html
+report.pdf
 
 # Jupyter
 .ipynb_checkpoints/

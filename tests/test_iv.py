@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 import numpy.typing as npt
 import pytest
 
+
 # ---------------------------------------------------------------------------
 # Inline implementations (no data dependency)
 # ---------------------------------------------------------------------------
-
-
 def iv_standard_error(
     bin_good: npt.ArrayLike,
     bin_bad: npt.ArrayLike,
@@ -49,8 +46,6 @@ def compute_psi_with_se(
 # ---------------------------------------------------------------------------
 # IV tests
 # ---------------------------------------------------------------------------
-
-
 class TestIVStandardError:
     def test_identical_distributions_give_zero_iv(self) -> None:
         """When good and bad have the same distribution, IV = 0."""
@@ -66,9 +61,7 @@ class TestIVStandardError:
             n_bins = rng.integers(2, 10)
             bin_good = rng.integers(10, 500, size=n_bins)
             bin_bad = rng.integers(10, 500, size=n_bins)
-            iv, se = iv_standard_error(
-                bin_good, bin_bad, int(bin_good.sum()), int(bin_bad.sum())
-            )
+            iv, se = iv_standard_error(bin_good, bin_bad, int(bin_good.sum()), int(bin_bad.sum()))
             assert iv >= -1e-10, f"IV should be non-negative, got {iv}"
             assert se >= 0, f"SE should be non-negative, got {se}"
 
@@ -119,8 +112,6 @@ class TestIVStandardError:
 # ---------------------------------------------------------------------------
 # PSI tests
 # ---------------------------------------------------------------------------
-
-
 class TestPSI:
     def test_identical_distributions_give_zero_psi(self) -> None:
         """PSI between identical distributions is 0."""
@@ -159,8 +150,6 @@ class TestPSI:
 # ---------------------------------------------------------------------------
 # Location invariance (Welford property)
 # ---------------------------------------------------------------------------
-
-
 class TestLocationInvariance:
     def test_variance_invariant_to_constant_shift(self) -> None:
         """Var(X - K) == Var(X) for any constant K."""

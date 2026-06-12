@@ -1,8 +1,8 @@
 ---
 title: "The Hidden Statistics Behind Credit Risk"
-subtitle: "How Weight of Evidence, Information Value, and the Population Stability Index became information divergences --- and why that matters"
+subtitle: "Three metrics every credit risk data scientist uses are the same information divergence --- which means you can finally put error bars on them"
 description: |
-  Three of the most widely used metrics in credit risk turn out to be classical information divergences. Recovering this foundation gives practitioners confidence intervals on IV, formal tests for PSI drift, and a principled language for fairness.
+  Three of the most widely used metrics in credit risk turn out to be classical information divergences. Recovering this foundation gives practitioners confidence intervals on IV, statistically grounded checks for PSI drift, and a principled language for fairness.
 categories:
   - Foundations & Frontiers
   - Statistics
@@ -40,146 +40,126 @@ page-layout: article
 title-block-banner: true
 ---
 
-Every credit data scientist learns to compute Weight of Evidence (WoE), Information Value (IV), and the Population Stability Index (PSI) early in their career. Few are taught where the formulas come from. The answer leads back to Turing's wartime *weight of evidence* for codebreaking [@good1950probability], Shannon's information theory [@shannon1948mathematical], and a family of divergence measures that statisticians have studied for decades [@kullback1951information; @jeffreys1961theory].
+A credit risk data scientist is ranking features for a new scorecard. One variable has an Information Value (IV) of 0.12; another scores 0.15. A third feature's Population Stability Index (PSI) has just crept above the 0.10 line that the team treats as a warning threshold. Three numbers, three decisions: keep the 0.15 feature over the 0.12 one? Trigger a model review because PSI crossed the threshold?
 
-In a recent paper [@sudjianto2025information], we prove a simple but consequential identity: the industry-standard IV formula is mathematically identical to the Jeffreys divergence between good and bad borrower distributions. PSI is the same divergence computed over time. And a "fairness IV" is the same divergence computed across demographic groups. Once that connection is made explicit, standard statistical tools become available --- and three things change in day-to-day practice:
+In most credit teams these calls are made on the point estimates alone, as if each number were exact. But every one of them was computed from a finite sample, so each carries sampling noise. Is 0.15 *meaningfully* more predictive than 0.12, or could the order flip on next month's data? Did the population really drift, or did a quiet week thin the sample? Without a measure of uncertainty, there is no principled way to answer --- and the data scientist is left trusting thresholds that were never derived from any statistical model.
 
-1. You can **report a confidence interval on IV** when ranking features, not just a point estimate.
-2. You can **formally test whether a PSI shift is real drift** or sampling noise.
-3. You can **defend fairness constraints** under model risk review with probabilistic bounds.
+It turns out the statistical model was there all along. WoE, IV, and PSI are not ad hoc credit-industry inventions; they are specific instances of a classical information divergence --- a measure of how far apart two probability distributions are --- with roots in Turing's wartime *weight of evidence* [@good1950probability] and Shannon's information theory [@shannon1948mathematical]. Recognising that connection is not just intellectual housekeeping. Because these metrics are functions of sample proportions, they have sampling distributions --- and that lets us attach confidence intervals and probabilistic bounds to quantities the industry has long treated as fixed. This article shows how, organised around the three questions our data scientist is really asking.
 
-This article walks through the identity, derives the standard errors, and shows how each of these works on the publicly available Home Credit dataset [@homecredit2024].
+## What these three metrics measure
 
-## The identity: IV = PSI = Jeffreys divergence
+Before the statistics, a plain-English refresher for readers who don't live in credit scoring:
 
-Start with the textbook IV formula. For a feature binned into $J$ categories, let $p_{g,j}$ and $p_{b,j}$ be the proportions of good and bad borrowers in bin $j$. Information Value is defined as [@siddiqi2017intelligent]:
+- **Weight of Evidence (WoE)** measures, for a single bin of a feature, how differently "good" and "bad" borrowers are distributed --- it is large and positive where bads concentrate, negative where goods do. Formally it is a log likelihood ratio --- exactly the quantity Turing and Good called the *weight of evidence* [@good1950probability].
+- **Information Value (IV)** rolls those bin-level signals into one number summarising a feature's overall discriminatory power. Practitioners rank candidate features by it and lean on conventional cut-offs (0.02 weak, 0.10 medium, 0.30 strong).
+- **Population Stability Index (PSI)** uses the same arithmetic to compare a feature's distribution *today* against a reference period, and is the standard tool for monitoring drift after a model goes live.
+
+The thing rarely taught alongside these formulas is that all three are the same underlying quantity.
+
+## One identity: IV = PSI = Jeffreys divergence
+
+The textbook IV formula, for a feature binned into $K$ categories with good- and bad-borrower proportions $p_{g,j}$ and $p_{b,j}$ [@siddiqi2017intelligent], turns out to be *exactly* the Jeffreys divergence --- the symmetrised Kullback--Leibler divergence [@kullback1951information; @jeffreys1961theory] --- between the good and bad distributions:
 
 $$
-\text{IV} = \sum_{j=1}^{J}(p_{b,j} - p_{g,j})\,\ln\frac{p_{b,j}}{p_{g,j}}
+\text{IV} = \sum_{j=1}^{K}(p_{b,j} - p_{g,j})\,\ln\frac{p_{b,j}}{p_{g,j}} \;=\; J(P_b \,\|\, P_g)
 $$ {#eq-iv}
 
-Now consider the Jeffreys divergence, defined as the symmetrised Kullback--Leibler divergence [@kullback1951information; @jeffreys1961theory]:
-
-$$
-J(P \| Q) = D_{\text{KL}}(P \| Q) + D_{\text{KL}}(Q \| P) = \sum_j (p_j - q_j)\,\ln\frac{p_j}{q_j}
-$$ {#eq-jeffreys}
-
-Set $P = P_b$ and $Q = P_g$, and @eq-iv is exactly @eq-jeffreys. That is all the proof requires --- the industry IV formula *is* the Jeffreys divergence, written in a different notation.
-
-The same formula appears elsewhere in credit risk under the name Population Stability Index, where $P$ is a reference distribution and $Q$ is a comparison distribution measured at a later point in time. And if $P$ and $Q$ are the feature distributions of two demographic groups, the same formula quantifies demographic bias.
+PSI is the same expression with a reference and a comparison distribution in place of bads and goods; a "fairness IV" is the same expression across two demographic groups. One formula, three uses.
 
 ::: {.column-margin}
 **One formula, three applications.** IV, PSI, and fairness IV are all the Jeffreys divergence $J(P \| Q)$ applied to different partitions of the data.
 :::
 
-This is not merely a notational coincidence. It means that every property of the Jeffreys divergence --- non-negativity, symmetry, zero if and only if $P = Q$ --- automatically applies to IV and PSI, grounding decades of ad hoc thresholds (0.02, 0.10, 0.30) in a well-understood statistical quantity [@kullback1951information].
+This is more than a notational coincidence. Every property of the Jeffreys divergence --- non-negativity, symmetry, zero if and only if the two distributions match --- transfers automatically to IV and PSI, grounding those decades-old thresholds in a well-understood statistical quantity [@kullback1951information]. More usefully for our data scientist, because the divergence is a function of sample proportions, it inherits a *sampling distribution*: it can be reported with a standard error. The derivation is short but notation-heavy, so we have boxed it below; the rest of the article only needs the result --- **IV and PSI come with error bars** --- and what that changes for each of the data scientist's three questions.
 
-## Standard errors from the delta method
+::: {.callout-note collapse="true" appearance="simple"}
+## Technical note: where the standard errors come from
 
-The practical payoff of the identity is that it opens the door to statistical inference. Because IV is a function of sample proportions, it has a sampling distribution, and we can derive its standard error.
-
-### WoE and location invariance
-
-The key observation is that Weight of Evidence is a *centred* log-odds ratio:
+The standard error follows from a single observation: Weight of Evidence is a *centred* log-odds ratio,
 
 $$
-\text{WoE}_j = \underbrace{\ln\frac{n_{j,b}}{n_{j,g}}}_{\text{bin log-odds}} - \underbrace{\ln\frac{n_b}{n_g}}_{\text{population log-odds}}
+\text{WoE}_j = \underbrace{\ln\frac{n_{j,b}}{n_{j,g}}}_{\text{bin log-odds}} - \underbrace{\ln\frac{n_b}{n_g}}_{\text{population log-odds}} .
 $$ {#eq-woe}
 
-Subtracting a constant does not change the variance --- a property familiar from Welford's algorithm for numerically stable variance computation. Since $\text{Var}(X - K) = \text{Var}(X)$ for any constant $K$, the standard error of WoE is identical to the standard error of the bin-level log-odds ratio:
+Reading this through Bayes' theorem in odds form gives the familiar updating rule: bin log-odds = population log-odds + WoE, so WoE is the evidence the bin contributes on top of the prior --- in Bayesian terms, the logarithm of a Bayes factor. Subtracting the constant population term does not change the variance ($\text{Var}(X-c)=\text{Var}(X)$ for any constant $c$), so the standard error of WoE equals that of the bin log-odds ratio:
 
 $$
-\text{SE}(\text{WoE}_j) = \sqrt{\frac{1}{n_{j,g}} + \frac{1}{n_{j,b}}}
+\text{SE}(\text{WoE}_j) = \sqrt{\frac{1}{n_{j,g}} + \frac{1}{n_{j,b}}} .
 $$ {#eq-se-woe}
 
-This can also be written as $1/\sqrt{n_j \cdot p_j(1-p_j)}$, where $n_j$ is the bin size and $p_j$ is the bin event rate --- the same expression that appears as the standard error of a logistic regression coefficient. Hand and Henley [-@hand1997statistical] describe both WoE encoding and logistic regression as standard tools in credit scoring; the connection between their standard errors is made explicit in our paper [@sudjianto2025information].
-
-### From WoE standard errors to IV standard errors
-
-Since IV is a weighted sum of WoE values, the delta method propagates the uncertainty. Assuming approximate independence across bins:
+This is the same $1/\sqrt{n_j\,p_j(1-p_j)}$ that appears as the standard error of a logistic-regression coefficient [@hand1997statistical]. Since IV is a weighted sum of WoE values, the delta method --- a standard tool for propagating uncertainty through a function of estimates --- applies (assuming approximate independence across bins):
 
 $$
-\text{SE}(\text{IV}) = \sqrt{\sum_{j=1}^{J}(p_{b,j} - p_{g,j})^2 \cdot \text{SE}(\text{WoE}_j)^2}
+\text{SE}(\text{IV}) = \sqrt{\sum_{j=1}^{K}(p_{b,j} - p_{g,j})^2 \cdot \text{SE}(\text{WoE}_j)^2} .
 $$ {#eq-se-iv}
 
-Because we established that IV = PSI = Jeffreys divergence, the same formula applies to PSI whenever it is computed from binned counts.
-
-## What changes in practice
-
-### 1. Confidence intervals on IV
-
-With @eq-se-iv, every IV point estimate gains an uncertainty bound:
-
-$$
-\text{CI}_{95\%}(\text{IV}) = \text{IV} \pm 1.96 \cdot \text{SE}(\text{IV})
-$$
-
-@fig-iv-ci shows this applied to 9 features from the Home Credit dataset. The error bars reveal that some features with similar point estimates have very different precision --- a distinction invisible without standard errors.
-
-::: {#fig-iv-ci}
-![](images/iv_bar_chart.png){fig-alt="Horizontal bar chart showing Information Value for 9 features with human-readable names, with 95% confidence interval error bars. Features are colored by group: blue for Credit Bureau, pink for Financial/Behaviour, and purple for Categorical/Profile. Vertical dashed lines mark the conventional Weak (0.02), Medium (0.1), and Strong (0.3) IV thresholds."}
-
-Information Value with 95% confidence intervals for 9 features from the Home Credit dataset, computed using the delta-method standard error from @eq-se-iv. Colours indicate feature group: Credit Bureau (blue), Financial/Behaviour (pink), Categorical/Profile (purple).
+Because IV = PSI = Jeffreys divergence, the identical formula gives a standard error for PSI whenever it is computed from binned counts. Full derivation in [@sudjianto2025information].
 :::
 
-The standard error also enables a formal hypothesis test for feature relevance. Under $H_0\!: \text{IV} = 0$ (no predictive power), the test statistic $Z = \text{IV} / \text{SE}(\text{IV})$ is asymptotically standard normal. In the Home Credit data, all 9 features reject the null at the 5\% level --- but this will not always be the case, particularly for smaller portfolios or finer binning schemes where sampling noise dominates.
+## Question 1: Is this feature predictive?
 
-### 2. Testing whether PSI drift is real
+With a standard error in hand, every IV point estimate becomes an interval, $\text{IV} \pm 1.96 \cdot \text{SE}(\text{IV})$. @fig-iv-ci shows this for eight Home Credit features. The error bars do the work the point estimates cannot: features with nearly identical IV can have widely different precision, so a feature scoring 0.15 may not be reliably ahead of one scoring 0.12 once their intervals overlap. Ranking on the point estimate alone can put the more uncertain feature on top by luck of the draw.
 
-The same SE formula applies to PSI. @fig-psi shows PSI computed weekly for the number of credit inquiries against a ten-week reference period. Two phenomena are visible. Around April 2020, a sharp spike crosses the minor-shift threshold --- but the wide confidence band signals that this is driven by a collapse in loan origination volumes during COVID lockdowns (as few as 82 applications in one week), not a genuine distributional shift. More telling is the sustained elevation from May onward, where PSI hovers in the 0.03--0.07 range with the confidence band consistently above zero, suggesting a real change in inquiry behaviour post-lockdown. Without CIs, both patterns look like drift; with them, the practitioner can distinguish noise from signal.
+::: {#fig-iv-ci}
+![](images/iv_bar_chart.png){fig-alt="Horizontal bar chart showing Information Value for 8 features with human-readable names, with 95% confidence interval error bars. Features are coloured by group: blue for Credit Bureau, pink for Financial/Behaviour, and purple for Categorical/Profile. Vertical dashed lines mark the conventional Weak (0.02), Medium (0.1), and Strong (0.3) IV thresholds."}
+
+**Information Value with 95% confidence intervals for eight Home Credit features.** Notice that several features have overlapping intervals despite different point estimates --- where the bars overlap, ranking one feature above another is not statistically justified, and the order may not survive the next data refresh. Colours indicate feature group: Credit Bureau (blue), Financial/Behaviour (pink), Categorical/Profile (purple).
+:::
+
+The standard error also suggests a quick check for whether a feature carries *any* signal: the ratio $Z = \text{IV}/\text{SE}(\text{IV})$ --- a signal-to-noise ratio --- flags how far the estimate sits from zero. Treat this as a screening heuristic, not a clean significance test. Binning choices, sparse bins, smoothing, dependence across bins, and the fact that we typically screen many features at once all distort the nominal error rate, so the number should not be read as a publishable p-value. Its value is in catching features whose apparent signal may be nothing more than sampling noise --- a coarser check than comparing two features against each other, which is the job of the confidence intervals in @fig-iv-ci.
+
+## Question 2: Has this population drifted?
+
+Because PSI shares the formula, it shares the standard error --- so the same trick distinguishes real drift from sampling noise. @fig-psi shows PSI computed weekly for the number of credit inquiries against a ten-week reference period, with confidence bands.
 
 ::: {#fig-psi}
 ![](images/psi_over_time.png){fig-alt="Line chart showing weekly PSI values for number of credit inquiries. A spike around April 2020 has a wide confidence band indicating low sample size. From May onward, PSI is persistently elevated with the confidence band above zero, indicating genuine drift. Coloured threshold zones mark stable (green), minor shift (orange), and major shift (red) regions."}
 
-PSI over time for number of credit inquiries, with 95% confidence bands from the delta method. The April 2020 spike reflects low origination volumes, not real drift; the sustained post-lockdown elevation is genuine.
+**Weekly PSI for number of credit inquiries, with 95% confidence bands.** The two movements to compare: the sharp April 2020 spike has a very wide band --- it reflects a collapse in origination volume during lockdown (as few as 82 applications in a week), not a genuine shift. The quieter but *sustained* elevation from May onward keeps its band clear of zero, which is the signature of real drift. Without the bands, both look alike; with them, only the second warrants action.
 :::
 
-### 3. Defending fairness constraints
+This is the practical pay-off for monitoring. A threshold crossing on its own is ambiguous: a thin week can push PSI over the line with no real change in behaviour, while a modest but persistent shift with a confidence band sitting clear of zero is the genuine article. The bands let a model-monitoring team triage alerts --- chase the sustained signal, wait out the low-volume blip --- instead of re-validating on every spike.
 
-Because the same divergence formula measures both predictive power and demographic bias, the performance--fairness trade-off can be stated precisely:
+## Question 3: Does this feature behave differently across groups?
 
-- **Maximise** $\text{IV}_{\text{perf}}$ --- Jeffreys divergence between good and bad borrowers (predictive power)
-- **Minimise** $\text{IV}_{\text{fair}}$ --- Jeffreys divergence between demographic groups (fairness)
-
-With standard errors, a hard regulatory threshold such as $\text{IV}_{\text{fair}} \leq 0.05$ becomes a probabilistic constraint:
-
-$$
-P(\text{IV}_{\text{fair}} \leq \epsilon) \geq 95\%
-$$ {#eq-fairness}
-
-This transforms binary pass/fail compliance into a risk-based assessment. A feature with $\text{IV}_{\text{fair}} = 0.048 \pm 0.001$ is qualitatively different from one with $\text{IV}_{\text{fair}} = 0.048 \pm 0.020$, even though both have the same point estimate.
-
-@fig-pareto shows predictive IV plotted against demographic IV (computed against applicant sex) for each feature. The horizontal threshold line at 0.05 separates features that pass the fairness constraint from those that fail --- but the error bars show that for some features near the boundary, the classification depends on the confidence level chosen.
-
-The most prominent outlier is `income_type`, with a demographic IV of 0.35. Inspecting the category proportions reveals why: retired pensioners make up 18.5% of female applicants but only 5.7% of males, and salaried government employees account for 19.5% of women versus 7.0% of men. The feature is not encoding a prejudice --- it is reflecting a real demographic difference in employment composition. But a scorecard that includes it will implicitly treat women and men differently, which is precisely what the high IV flags. Whether that is acceptable is a regulatory decision; the statistics quantify the size of the gap.
+The third question reuses the same divergence a final way. Computed between two demographic groups rather than between goods and bads, the Jeffreys divergence measures how differently a feature is distributed across those groups --- a "demographic IV". Plotting each feature's predictive IV against its demographic IV (@fig-pareto) lays out the performance--fairness trade-off in a single view.
 
 ::: {#fig-pareto}
-![](images/pareto_predictive_vs_demographic.png){fig-alt="Scatter plot with Predictive IV on the x-axis and Demographic IV on the y-axis. Each point is a feature, colored by group. Error bars show 95% confidence intervals on both axes. A horizontal dashed orange line marks the fairness threshold at IV = 0.05."}
+![](images/pareto_predictive_vs_demographic.png){fig-alt="Scatter plot with Predictive IV on the x-axis and Demographic IV on the y-axis. Each point is a feature, coloured by group. Error bars show 95% confidence intervals on both axes. A horizontal dashed orange line marks a reference line at IV = 0.05."}
 
-Performance--fairness trade-off for 9 features. Horizontal axis: IV against the default target (predictive power). Vertical axis: IV against applicant sex (demographic bias). Features above the dashed line ($\text{IV}_{\text{fair}} > 0.05$) fail the fairness constraint at the 95% confidence level.
+**Performance--fairness trade-off for eight features.** Read the plot by quadrant. The horizontal axis is predictive IV (against the default target); the vertical axis is demographic IV (against applicant sex). Features toward the **bottom-right** are the desirable ones --- predictive yet evenly distributed across groups. Features toward the **top** carry a large demographic gap regardless of how predictive they are. The dashed line at 0.05 is a reference level for the discussion below, *not* a regulatory standard. Error bars are 95% confidence intervals on both axes; near the line, the bars show the classification can depend on the confidence level chosen.
 :::
 
-A more nuanced test goes further: compute IV *separately* for each demographic group on shared bins, then test whether the difference is significant. @fig-density shows this for the top feature, percent of late installments. The left panel plots the IV sampling distribution for female and male applicants; the right panel shows the distribution of the difference. The feature is more predictive for women (IV = 0.31) than for men (IV = 0.21), and the gap is statistically significant ($\Delta\text{IV} = -0.091$, $p = 0.002$). This kind of differential predictive power --- invisible without standard errors --- has direct implications for equal treatment.
+The most prominent outlier is `income_type`, with a demographic IV of 0.35. The reason is structural rather than prejudicial: retired pensioners are 29.7% of female applicants but only 15.0% of males, and salaried government employees are 31.3% of women versus 18.6% of men. The feature is picking up a genuine difference in employment composition --- but a scorecard that uses it will treat men and women differently in proportion to that gap, which is exactly what the high demographic IV flags. Whether that is acceptable is a governance and legal judgement; the statistic only quantifies the size of the gap.
+
+That distinction matters for how the number is used. No single demographic-IV value is in itself a compliance bar, and the uncertainty estimate does not turn a fairness question into an automated pass/fail. What it *does* offer is better governance evidence: a feature at $\text{IV}_{\text{fair}} = 0.048 \pm 0.001$ is in a different position from one at $0.048 \pm 0.020$, even though the point estimates match. A model-risk reviewer can weigh that uncertainty rather than treat the point estimate as exact.
+
+The same machinery answers a sharper version of the question: do the groups differ not just in how a feature is distributed, but in how *predictive* it is? @fig-density computes IV separately for each group on shared bins. For percent of late installments, the feature is more predictive for women (IV = 0.31) than for men (IV = 0.21) --- a gap that is unlikely to be sampling noise. Tracing the full performance--fairness frontier, by mixed-integer programming, is developed in the paper [@sudjianto2025information]; the contribution here is the statistical one --- making the trade-off quantitative rather than binary.
 
 ::: {#fig-density}
-![](images/iv_density_by_group.png){fig-alt="Two-panel figure. Left panel shows two normal density curves for the IV of percent late installments, one for female applicants (pink, IV around 0.31) and one for male applicants (cyan, IV around 0.21), with vertical dashed lines at the Weak, Medium, and Strong IV thresholds. Right panel shows the normal density of the IV difference (Male minus Female), centred at minus 0.09, with 95% confidence interval dotted lines and a vertical black line at zero."}
+![](images/iv_density_by_group.png){fig-alt="Two-panel figure. Left panel shows two normal density curves for the IV of percent late installments, one for female applicants (pink, IV around 0.31) and one for male applicants (teal, IV around 0.21), with vertical dashed lines at the Weak, Medium, and Strong IV thresholds. Right panel shows the normal density of the IV difference (Male minus Female), centred at minus 0.09, with 95% confidence interval dotted lines and a vertical black line at zero."}
 
-IV density by sex for percent of late installments. Left: IV sampling distributions for female and male groups (delta-method normal approximation). Right: distribution of the difference $\Delta\text{IV}$; zero falls outside the 95% CI, confirming the gap is statistically significant.
+**IV by sex for percent of late installments.** Left: the IV sampling distributions for female and male applicants barely overlap. Right: the distribution of their difference sits clear of zero, so the feature is meaningfully more predictive for one group than the other --- a differential that is invisible if IV is reported as a single number per feature.
 :::
 
-The full optimisation of this trade-off --- tracing the Pareto frontier via mixed-integer programming, selecting features that jointly maximise performance subject to fairness budgets --- is developed in the paper [@sudjianto2025information]. The key contribution here is the *statistical* one: standard errors make the trade-off quantitative rather than binary.
+## What to do differently tomorrow
+
+None of this requires new infrastructure --- only reporting the uncertainty that was always implicit in the numbers. A short checklist:
+
+1. **When ranking features by IV, report the confidence interval, not just the point estimate.** A feature at IV = 0.15 ± 0.04 may not be meaningfully ahead of one at 0.12 ± 0.03.
+2. **Treat a PSI alert as a hypothesis, not a verdict.** Check whether the confidence band clears zero before you act --- a thin origination week can lift the index over a line while the underlying distribution has barely moved.
+3. **Bring the error bars to fairness reviews.** A demographic IV is one draw from a distribution: 0.048 ± 0.001 and 0.048 ± 0.020 should not weigh the same in a model-risk discussion, even though their point estimates are identical.
+4. **Read the conventional cut-offs (0.02, 0.10, 0.30) as rules of thumb, not thresholds with the force of law.** The statistics size the question; they do not settle it.
 
 ## Code and data
 
-All results in this article are reproduced in a companion Jupyter notebook, available at [github.com/deburky/rwds-submission](https://github.com/deburky/rwds-submission). The notebook uses the [Home Credit --- Credit Risk Model Stability](https://huggingface.co/datasets/deburky/home-credit-credit-risk-model-stability) dataset (522,596 loan applications, 9 features) and can be run directly from HuggingFace without downloading the raw Kaggle data. WoE encoding, IV computation, and standard errors are computed using the open-source [FastWoe](https://github.com/xRiskLab/fastwoe) library.
+All results are reproduced in a companion Jupyter notebook at [github.com/deburky/rwds-submission](https://github.com/deburky/rwds-submission). It uses the [Home Credit --- Credit Risk Model Stability](https://huggingface.co/datasets/deburky/home-credit-credit-risk-model-stability) dataset [@homecredit2024] (522,596 loan applications, 8 features) and runs directly from HuggingFace. To keep the confidence intervals visible at the scale of the figures, the analysis uses a 10% sample stratified by week (roughly 52,000 applications, with every week retained); on the full dataset the intervals are correspondingly tighter. WoE encoding, IV, and standard errors use the open-source [FastWoe](https://github.com/xRiskLab/fastwoe) library.
 
 ## Conclusion
 
-Weight of Evidence, Information Value, and the Population Stability Index are not ad hoc metrics. They are specific instances of the Jeffreys divergence --- a quantity with well-understood statistical properties dating back to the 1940s. Recognising this identity is not merely an intellectual exercise: it gives the delta method a purchase, and the delta method gives standard errors, confidence intervals, and hypothesis tests.
+Weight of Evidence, Information Value, and the Population Stability Index are not ad hoc metrics. They are specific instances of the Jeffreys divergence --- a quantity statisticians have understood since the 1940s. That single recognition is what gives the delta method something to work on, and the delta method is what supplies the standard errors, confidence intervals, and tests behind every figure above.
 
-The practical upshot for credit data scientists is concise. When you rank features by IV, report the confidence interval --- a feature with IV = 0.15 $\pm$ 0.04 may not be meaningfully different from one with IV = 0.12 $\pm$ 0.03. When PSI crosses a threshold, test whether the shift is statistically significant before triggering remediation. And when defending a model under fairness review, present the probability that your fairness IV falls within the regulatory budget, not just the point estimate.
-
-These are small changes in workflow, but they move credit risk practice from point estimates to inference --- which is, after all, what statistics is for.
+The shift it asks of practitioners is small but real: from reporting credit metrics as exact numbers to reporting them as estimates with uncertainty. That is a modest change in workflow --- but it moves credit risk practice from point estimates to inference, which is, after all, what statistics is for.
 
 ::: {.article-btn}
 [Back to Foundations & Frontiers](https://realworlddatascience.net/ideas/foundations-and-frontiers/)
@@ -203,7 +183,7 @@ Copyright and licence
 
 ::: {.g-col-12 .g-col-md-6}
 How to cite
-: Burakov, Denis, and Agus Sudjianto. 2026. "The Hidden Statistics Behind Credit Risk." Real World Data Science, June, 2026. [URL](https://realworlddatascience.net)
+: Burakov, Denis, and Agus Sudjianto. 2026. "The Hidden Statistics Behind Credit Risk." Real World Data Science, June 2026. [URL](https://realworlddatascience.net)
 :::
 :::
 :::
