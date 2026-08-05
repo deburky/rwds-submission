@@ -169,7 +169,7 @@ The shift it asks of practitioners is small but real: from reporting credit metr
 ::: grid
 ::: {.g-col-12 .g-col-md-12}
 About the authors
-: **Denis Burakov** leads data science and data engineering at Renmoney, with experience across banking and fintech in developed and emerging markets. He has held senior roles at Amazon, N26, KPMG, and Sberbank, spanning retail and corporate lending, decisioning, regulatory and managerial risk models, and fraud detection. He is based in Berlin, Germany.
+: **Denis Burakov** leads data science and data engineering at Renmoney. He has held senior roles at Amazon, N26, KPMG, and Sberbank, spanning retail and corporate lending, regulatory and managerial risk models, and fraud detection. He is based in Berlin, Germany.
 
 : **Agus Sudjianto** is SVP of Risk & Technology at H2O.ai and Executive in Residence at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo. He is a co-creator of PiML and MoDeVa.
 :::
