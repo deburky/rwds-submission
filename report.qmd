@@ -14,8 +14,8 @@ author:
       - Fellow of the Royal Statistical Society
   - name: Agus Sudjianto
     affiliations:
-      - H2O.ai
-      - Center for Trustworthy AI, University of North Carolina Charlotte
+      - SVP of Risk & Technology, H2O.ai
+      - Executive in Residence, Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte
 date: last-modified
 date-format: long
 toc: true
@@ -169,9 +169,9 @@ The shift it asks of practitioners is small but real: from reporting credit metr
 ::: grid
 ::: {.g-col-12 .g-col-md-12}
 About the authors
-: **Agus Sudjianto** is SVP of Risk & Technology at H2O.ai and Executive in Residence at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo.
+: **Denis Burakov** leads data science and data engineering at Renmoney, with experience across banking and fintech in developed and emerging markets. He has held senior roles at Amazon, N26, KPMG, and Sberbank, spanning retail and corporate lending, decisioning, regulatory and managerial risk models, and fraud detection. He is based in Berlin, Germany.
 
-: **Denis Burakov** is a Data Science Team Lead at Renmoney and Fellow of the Royal Statistical Society. He focuses on applied credit risk modelling, information-theoretic methods, and open-source tooling for responsible AI.
+: **Agus Sudjianto** is SVP of Risk & Technology at H2O.ai and Executive in Residence at the Center for Trustworthy AI Through Model Risk Management, University of North Carolina Charlotte. He was formerly Head of Corporate Model Risk at Wells Fargo. He is a co-creator of PiML and MoDeVa.
 :::
 ::: {.g-col-12 .g-col-md-6}
 Copyright and licence
